@@ -1,4 +1,6 @@
 (require 'cl)
+(require 'stem)
+
 (defvar *punctuation-re* "[,.;:()]")
 
 (defun html-dom (html-content)
@@ -38,7 +40,9 @@
 
 (defun text-to-bow (text)
   "Converts a text to bag-of-words representation"
-  (count-unique (split-string (normalize-text text))))
+  (count-unique
+   (mapcar (lambda (word) (car (stem-english word)))
+           (split-string (normalize-text text)))))
 
 (defun elfeed-smarttag-entry-bow (entry)
   "Converts a elfeed entry into a bag-of-words"
