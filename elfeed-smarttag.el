@@ -1,3 +1,4 @@
+(require 'cl)
 (defvar *punctuation-re* "[,.;:()]")
 
 (defun html-dom (html-content)
@@ -23,9 +24,21 @@
   "Normalize chunk of text: no punctuation symbols, all lowercase"
   (downcase (replace-regexp-in-string *punctuation-re* "" text)))
 
+;; Adapted from 
+;; http://stackoverflow.com/questions/6050033/elegant-way-to-count-items
+(defun count-unique (list)
+  (loop
+     with hash = (make-hash-table :test #'equal)
+     for item in list
+     do (incf (gethash item hash 0))
+     finally (return
+               (loop for key being each hash-key of hash
+                  using (hash-value value)
+                  collect (cons key value)))))
+
 (defun text-to-bow (text)
   "Converts a text to bag-of-words representation"
-  (split-string (normalize-text text)))
+  (count-unique (split-string (normalize-text text))))
 
 (defun elfeed-smarttag-entry-bow (entry)
   "Converts a elfeed entry into a bag-of-words"
