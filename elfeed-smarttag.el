@@ -1,5 +1,7 @@
 (require 'cl)
+(require 'cl-lib) ;; FIXME which one is useless?
 (require 'stem)
+(require 'elfeed)
 
 (defvar *punctuation-re* "[,.;:()]")
 
@@ -55,11 +57,15 @@
                   using (hash-value value)
                   collect (cons key value)))))
 
+(defun is-common-word? (word)
+  (gethash word elfeed-smarttag-common-words-db))
+
 (defun text-to-bow (text)
   "Converts a text to bag-of-words representation"
   (count-unique
-   (mapcar (lambda (word) (car (stem-english word)))
-           (split-string (normalize-text text)))))
+   (remove-if-not (lambda (word) (is-common-word? word))
+                  (mapcar (lambda (word) (car (stem-english word)))
+                          (split-string (normalize-text text))))))
 
 (defun elfeed-smarttag-entry-bow (entry)
   "Converts a elfeed entry into a bag-of-words"
@@ -72,15 +78,20 @@
         (text-to-bow entry-content-text))))
 
 (defun elfeed-smarttag-process-entry (entry feed)
-  ;; (insert (elfeed-feed-id feed))
-  ;; (message (elfeed-feed-id feed))
-  (message (elfeed-entry-title entry))
-  (insert (pp (elfeed-smarttag-entry-bow entry))))
+  (let ((title (elfeed-entry-title entry)))
+    (message title)
+    (insert
+     (format "%s\t%d\n" title
+             (length (elfeed-smarttag-entry-bow entry))))))
 
-(with-temp-file "/tmp/elfeed-smarttag.txt" 
+(defun elfeed-smartag-processable? (entry feed)
+  (let ((tags (elfeed-entry-tags entry)))
+    (member 'interesting tags)))
+
+(with-temp-file "/tmp/elfeed-smarttag.txt"
+  (elfeed-smarttag--init-common-words-db)
   (with-elfeed-db-visit (entry feed)
-    (if (string= (elfeed-feed-id feed) "http://planet.haskell.org/rss20.xml")
-        (elfeed-smarttag-process-entry entry feed))
-    ;; (elfeed-db-return)
-    ))
+    (when (elfeed-smartag-processable? entry feed)
+      (elfeed-smarttag-process-entry entry feed))))
 
+(provide 'elfeed-smarttag)
