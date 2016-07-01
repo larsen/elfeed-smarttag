@@ -3,6 +3,23 @@
 
 (defvar *punctuation-re* "[,.;:()]")
 
+(defvar *elfeed-smarttag-directory* "~/.elfeed-smarttag/")
+(defvar *common-words* (expand-file-name "commonwords" *elfeed-smarttag-directory*))
+(defvar *english-common-words* "~/Dropbox/Projects/dev/google-10000-english/google-10000-english.txt")
+
+(defvar elfeed-smarttag-common-words-db nil)
+
+(defun elfeed-smarttag--init-common-words-db ()
+  (setf elfeed-smarttag-common-words-db (get-common-words *english-common-words*)))
+
+(defun get-common-words (filepath)
+  (let ((common-words-hash (make-hash-table :test 'equal)))
+    (with-temp-buffer
+      (insert-file-contents filepath)
+      (loop for word in (split-string (buffer-string) "\n" t)
+            do (puthash (car (stem-english word)) 1 common-words-hash)
+            finally return common-words-hash))))
+
 (defun html-dom (html-content)
   (with-temp-buffer
     (insert html-content)
